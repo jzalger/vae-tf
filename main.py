@@ -13,7 +13,7 @@ IMG_DIM = 28
 
 ARCHITECTURE = [IMG_DIM**2, # 784 pixels
                 500, 500, # intermediate encoding
-                2] # latent space dims
+                4] # latent space dims
                 # 50]
 # (and symmetrically back out again)
 
@@ -26,7 +26,7 @@ HYPERPARAMS = {
     "squashing": tf.nn.sigmoid
 }
 
-MAX_ITER = 2000#2**16
+MAX_ITER = 40000#2**16
 MAX_EPOCHS = np.inf
 
 LOG_DIR = "./log"
