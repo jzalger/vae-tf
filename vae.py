@@ -41,7 +41,7 @@ class VAE():
         self.__dict__.update(VAE.DEFAULTS, **d_hyperparams)
         self.sesh = tf.Session()
 
-        if not meta_graph: # new model
+        if not meta_graph:  # new model
             self.datetime = datetime.now().strftime(r"%y%m%d_%H%M")
             assert len(self.architecture) > 2, \
                 "Architecture must have more layers! (input, 1+ hidden, latent)"
@@ -52,7 +52,7 @@ class VAE():
                 tf.add_to_collection(VAE.RESTORE_KEY, handle)
             self.sesh.run(tf.global_variables_initializer())
 
-        else: # restore saved model
+        else:  # restore saved model
             model_datetime, model_name = os.path.basename(meta_graph).split("_vae_")
             self.datetime = "{}_reloaded".format(model_datetime)
             *model_architecture, _ = re.split("_|-", model_name)
@@ -69,7 +69,7 @@ class VAE():
          self.x_reconstructed, self.z_, self.x_reconstructed_,
          self.cost, self.global_step, self.train_op) = handles
 
-        if save_graph_def: # tensorboard
+        if save_graph_def:  # tensorboard
             self.logger = tf.summary.FileWriter(log_dir, self.sesh.graph)
 
     @property
@@ -78,7 +78,7 @@ class VAE():
         return self.global_step.eval(session=self.sesh)
 
     def _buildGraph(self):
-        x_in = tf.placeholder(tf.float32, shape=[None, # enables variable batch size
+        x_in = tf.placeholder(tf.float32, shape=[None,  # enables variable batch size
                                                  self.architecture[0]], name="x")
         dropout = tf.placeholder_with_default(1., shape=[], name="dropout")
 
@@ -98,9 +98,9 @@ class VAE():
 
         # decoding / "generative": p(x|z)
         decoding = [Dense("decoding", hidden_size, dropout, self.nonlinearity)
-                    for hidden_size in self.architecture[1:-1]] # assumes symmetry
+                    for hidden_size in self.architecture[1:-1]]  # assumes symmetry
         # final reconstruction: restore original dims, squash outputs [0, 1]
-        decoding.insert(0, Dense( # prepend as outermost function
+        decoding.insert(0, Dense(  # prepend as outermost function
             "x_decoding", self.architecture[0], dropout, self.squashing))
         x_reconstructed = tf.identity(composeAll(decoding)(z), name="x_reconstructed")
 
@@ -127,8 +127,8 @@ class VAE():
             optimizer = tf.train.AdamOptimizer(self.learning_rate)
             tvars = tf.trainable_variables()
             grads_and_vars = optimizer.compute_gradients(cost, tvars)
-            clipped = [(tf.clip_by_value(grad, -5, 5), tvar) # gradient clipping
-                    for grad, tvar in grads_and_vars]
+            clipped = [(tf.clip_by_value(grad, -5, 5), tvar)  # gradient clipping
+                       for grad, tvar in grads_and_vars]
             train_op = optimizer.apply_gradients(clipped, global_step=global_step,
                                                  name="minimize_cost")
 
@@ -136,8 +136,8 @@ class VAE():
         # defaults to prior z ~ N(0, I)
         with tf.name_scope("latent_in"):
             z_ = tf.placeholder_with_default(tf.random_normal([1, self.architecture[-1]]),
-                                            shape=[None, self.architecture[-1]],
-                                            name="latent_in")
+                                             shape=[None, self.architecture[-1]],
+                                             name="latent_in")
         x_reconstructed_ = composeAll(decoding)(z_)
 
         return (x_in, dropout, z_mean, z_log_sigma, x_reconstructed,
@@ -148,7 +148,7 @@ class VAE():
         with tf.name_scope("sample_gaussian"):
             # reparameterization trick
             epsilon = tf.random_normal(tf.shape(log_sigma), name="epsilon")
-            return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
+            return mu + epsilon * tf.exp(log_sigma)  # N(mu, I * sigma**2)
 
     @staticmethod
     def crossEntropy(obs, actual, offset=1e-7):
@@ -165,7 +165,7 @@ class VAE():
         """L1 loss (a.k.a. LAD), per training example"""
         # (tf.Tensor, tf.Tensor, float) -> tf.Tensor
         with tf.name_scope("l1_loss"):
-            return tf.reduce_sum(tf.abs(obs - actual) , 1)
+            return tf.reduce_sum(tf.abs(obs - actual), 1)
 
     @staticmethod
     def l2_loss(obs, actual):
@@ -180,7 +180,7 @@ class VAE():
         # (tf.Tensor, tf.Tensor) -> tf.Tensor
         with tf.name_scope("KL_divergence"):
             # = -0.5 * (1 + log(sigma**2) - mu**2 - sigma**2)
-            return -0.5 * tf.reduce_sum(1 + 2 * log_sigma - mu**2 -
+            return -0.5 * tf.reduce_sum(1 + 2 * log_sigma - mu ** 2 -
                                         tf.exp(2 * log_sigma), 1)
 
     def encode(self, x):
@@ -199,7 +199,7 @@ class VAE():
         feed_dict = dict()
         if zs is not None:
             is_tensor = lambda x: hasattr(x, "eval")
-            zs = (self.sesh.run(zs) if is_tensor(zs) else zs) # coerce to np.array
+            zs = (self.sesh.run(zs) if is_tensor(zs) else zs)  # coerce to np.array
             feed_dict.update({self.z_: zs})
         # else, zs defaults to draw from conjugate prior z ~ N(0, I)
         return self.sesh.run(self.x_reconstructed_, feed_dict=feed_dict)
@@ -220,7 +220,7 @@ class VAE():
             now = datetime.now().isoformat()[11:]
             print("------- Training begin: {} -------\n".format(now))
 
-            if plot_latent_over_time: # plot latent space over log_BASE time
+            if plot_latent_over_time:  # plot latent space over log_BASE time
                 BASE = 2
                 INCREMENT = 0.5
                 pow_ = 0
@@ -234,7 +234,7 @@ class VAE():
                 err_train += cost
 
                 if plot_latent_over_time:
-                    while int(round(BASE**pow_)) == i:
+                    while int(round(BASE ** pow_)) == i:
                         plot.exploreLatent(self, nx=30, ny=30, ppf=True, outdir=plots_outdir,
                                            name="explore_ppf30_{}".format(pow_))
 
@@ -242,16 +242,16 @@ class VAE():
                         datasets = (X.train, X.validation, X.test)
                         for name, dataset in zip(names, datasets):
                             plot.plotInLatent(self, dataset.images, dataset.labels, range_=
-                                              (-6, 6), title=name, outdir=plots_outdir,
+                            (-6, 6), title=name, outdir=plots_outdir,
                                               name="{}_{}".format(name, pow_))
 
                         print("{}^{} = {}".format(BASE, pow_, i))
                         pow_ += INCREMENT
 
-                if i%1000 == 0 and verbose:
+                if i % 1000 == 0 and verbose:
                     print("round {} --> avg cost: ".format(i), err_train / i)
 
-                if i%2000 == 0 and verbose:# and i >= 10000:
+                if i % 2000 == 0 and verbose:  # and i >= 10000:
                     # visualize `n` examples of current minibatch inputs + reconstructions
                     plot.plotSubset(self, x, x_reconstructed, n=10, name="train",
                                     outdir=plots_outdir)
@@ -279,7 +279,7 @@ class VAE():
                     try:
                         self.logger.flush()
                         self.logger.close()
-                    except(AttributeError): # not logging
+                    except(AttributeError):  # not logging
                         continue
                     break
 
