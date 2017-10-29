@@ -6,17 +6,15 @@ import plot
 from utils import get_mnist
 import vae
 
-IMG_DIM = 28
 
-"""
-* architecture (list of nodes per encoder layer); e.g.
-               [1000, 500, 250, 10] specifies a VAE with 1000-D inputs, 10-D latents,
-               & end-to-end architecture [1000, 500, 250, 10, 250, 500, 1000]
-"""
-ARCHITECTURE = [IMG_DIM ** 2,  # 784 pixels - total input layer dimension
-                500, 500,  # intermediate encoding - 2 layers of 500 neurons
-                2]  # latent space dims
-# 50]
+FEATURES = 4  # Number of scalar input features.
+IMG_DIM = 28  # size of one side of the image. Total image variables = IMG_DIM * IMG_DIM
+
+X_LENGTH = FEATURES + IMG_DIM ** 2
+
+ARCHITECTURE = [X_LENGTH,   # total input layer dimension
+                500, 500,   # intermediate encoding layer size - eg: 2 layers of 500 neurons
+                2]          # latent space dims
 
 HYPERPARAMS = {
     "batch_size": 128,
@@ -36,9 +34,23 @@ METAGRAPH_DIR = "./out"
 PLOTS_DIR = "./png"
 
 
+# TODO: for testing, subclass the object returned by mnist.input_data and
+# have it prepend the functional features to the image array.
+
 def load_mnist():
     from tensorflow.examples.tutorials.mnist import input_data
     return input_data.read_data_sets("./mnist_data")
+
+
+class InputData(object):
+    """Object which combines image variables with functional features."""
+
+    def __init__(self, nfeatures):
+        self.nfeatures = nfeatures
+
+    def rand_functional_features(self):
+        """For initial debugging"""
+        return np.random.rand(1, self.nfeatures)
 
 
 def all_plots(model, mnist):
@@ -104,6 +116,7 @@ def morph_numbers(model, mnist, ns=None, n_per_morph=10):
 
 
 def main(to_reload=None):
+    # mnist in a .Dataset object format
     mnist = load_mnist()
 
     if to_reload:  # restore

@@ -226,6 +226,9 @@ class VAE():
                 pow_ = 0
 
             while True:
+                # TODO: Need to modify the X object to return expanded mini batches with functional features.
+                # Here x is an ndarray of pixels, _ is the classification vector
+
                 x, _ = X.train.next_batch(self.batch_size)
                 feed_dict = {self.x_in: x, self.dropout_: self.dropout}
                 fetches = [self.x_reconstructed, self.cost, self.global_step, self.train_op]
