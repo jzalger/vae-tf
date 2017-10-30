@@ -1,13 +1,11 @@
-from datetime import datetime
 import os
 import re
 import sys
-
+import plot
 import numpy as np
 import tensorflow as tf
-
 from layers import Dense
-import plot
+from datetime import datetime
 from utils import composeAll, print_
 
 
@@ -226,9 +224,6 @@ class VAE():
                 pow_ = 0
 
             while True:
-                # TODO: Need to modify the X object to return expanded mini batches with functional features.
-                # Here x is an ndarray of pixels, _ is the classification vector
-
                 x, _ = X.train.next_batch(self.batch_size)
                 feed_dict = {self.x_in: x, self.dropout_: self.dropout}
                 fetches = [self.x_reconstructed, self.cost, self.global_step, self.train_op]
@@ -256,7 +251,7 @@ class VAE():
 
                 if i % 2000 == 0 and verbose:  # and i >= 10000:
                     # visualize `n` examples of current minibatch inputs + reconstructions
-                    plot.plotSubset(self, x, x_reconstructed, n=10, name="train",
+                    plot.plotSubset(self, x[:, X.nfeatures:], x_reconstructed[:, X.nfeatures:], n=10, name="train",
                                     outdir=plots_outdir)
 
                     if cross_validate:
@@ -266,7 +261,7 @@ class VAE():
                         x_reconstructed, cost = self.sesh.run(fetches, feed_dict)
 
                         print("round {} --> CV cost: ".format(i), cost)
-                        plot.plotSubset(self, x, x_reconstructed, n=10, name="cv",
+                        plot.plotSubset(self, x[:, X.nfeatures:], x_reconstructed[:, X.nfeatures:], n=10, name="cv",
                                         outdir=plots_outdir)
 
                 if i >= max_iter or X.train.epochs_completed >= max_epochs:
