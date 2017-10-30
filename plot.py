@@ -1,6 +1,7 @@
 import itertools
 import os
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -14,11 +15,11 @@ def plotSubset(model, x_in, x_reconstructed, n=10, cols=None, outlines=True,
     cols = (cols if cols else n)
     rows = 2 * int(np.ceil(n / cols)) # doubled b/c input & reconstruction
 
-    plt.figure(figsize = (cols * 2, rows * 2))
-    dim = int(model.architecture[0]**0.5) # assume square images
+    plt.figure(figsize=(cols * 2, rows * 2))
+    dim = int(model.architecture[0]**0.5 - model.architecture[4]) # assume square images
 
     def drawSubplot(x_, ax_):
-        plt.imshow(x_.reshape([dim, dim]), cmap="Greys")
+        plt.imshow(x_[0:dim*dim].reshape([dim, dim]), cmap="Greys")
         if outlines:
             ax_.get_xaxis().set_visible(False)
             ax_.get_yaxis().set_visible(False)
@@ -38,7 +39,7 @@ def plotSubset(model, x_in, x_reconstructed, n=10, cols=None, outlines=True,
     # plt.show()
     if save:
         title = "{}_batch_{}_round_{}_{}.png".format(
-            model.datetime, "_".join(map(str, model.architecture)), model.step, name)
+            model.datetime, "_".join(map(str, model.architecture)), model.step, name.replace(">", "_"))
         plt.savefig(os.path.join(outdir, title), bbox_inches="tight")
 
 
@@ -78,7 +79,7 @@ def plotInLatent(model, x_in, labels=[], range_=None, title=None,
     if save:
         title = "{}_latent_{}_round_{}_{}.png".format(
             model.datetime, "_".join(map(str, model.architecture)),
-            model.step, name)
+            model.step, name.replace(">", "_"))
         plt.savefig(os.path.join(outdir, title), bbox_inches="tight")
 
 
@@ -89,7 +90,7 @@ def exploreLatent(model, nx=20, ny=20, range_=(-4, 4), ppf=False,
     # linear range; else ppf (percent point function) == inverse CDF from [0, 1]
     range_ = ((0, 1) if ppf else range_)
     min_, max_ = range_
-    dim = int(model.architecture[0]**0.5)
+    dim = int(model.architecture[0]**0.5 - model.architecture[4])
 
     # complex number steps act like np.linspace
     # row, col indices (i, j) correspond to graph coords (y, x)
@@ -101,7 +102,7 @@ def exploreLatent(model, nx=20, ny=20, range_=(-4, 4), ppf=False,
         DELTA = 1E-16 # delta to avoid +/- inf at 0, 1 boundaries
         zs = np.array([norm.ppf(np.clip(z, DELTA, 1 - DELTA)) for z in zs])
 
-    canvas = np.vstack([np.hstack([x.reshape([dim, dim])
+    canvas = np.vstack([np.hstack([x[0:dim*dim].reshape([dim, dim])
                                    for x in model.decode(z_row)])
                         for z_row in iter(zs)])
 
@@ -119,7 +120,7 @@ def exploreLatent(model, nx=20, ny=20, range_=(-4, 4), ppf=False,
     # plt.show()
     if save:
         title = "{}_latent_{}_round_{}_{}.png".format(
-            model.datetime, "_".join(map(str, model.architecture)), model.step, name)
+            model.datetime, "_".join(map(str, model.architecture)), model.step, name.replace(">", "_"))
         plt.savefig(os.path.join(outdir, title), bbox_inches="tight")
 
 
@@ -129,10 +130,10 @@ def interpolate(model, latent_1, latent_2, n=20, save=True, name="interpolate", 
                     for start, end in zip(latent_1, latent_2)]).T
     xs_reconstructed = model.decode(zs)
 
-    dim = int(model.architecture[0]**0.5)
-    canvas = np.hstack([x.reshape([dim, dim]) for x in xs_reconstructed])
+    dim = int(model.architecture[0]**0.5 - model.architecture[4])
+    canvas = np.hstack([x[0:dim*dim].reshape([dim, dim]) for x in xs_reconstructed])
 
-    plt.figure(figsize = (n, 2))
+    plt.figure(figsize=(n, 2))
     plt.imshow(canvas, cmap="Greys")
     plt.axis("off")
     plt.tight_layout()
@@ -140,7 +141,7 @@ def interpolate(model, latent_1, latent_2, n=20, save=True, name="interpolate", 
     # plt.show()
     if save:
         title = "{}_latent_{}_round_{}_{}".format(
-            model.datetime, "_".join(map(str, model.architecture)), model.step, name)
+            model.datetime, "_".join(map(str, model.architecture)), model.step, name.replace(">", "_"))
         plt.savefig(os.path.join(outdir, title), bbox_inches="tight")
 
 
@@ -149,22 +150,22 @@ def justMNIST(x, save=True, name="digit", outdir="."):
     DIM = 28
     TICK_SPACING = 4
 
-    fig, ax = plt.subplots(1,1)
-    plt.imshow(x.reshape([DIM, DIM]), cmap="Greys",
+    fig, ax = plt.subplots(1, 1)
+    plt.imshow(x[0:DIM*DIM].reshape([DIM, DIM]), cmap="Greys",
                extent=((0, DIM) * 2), interpolation="none")
     ax.xaxis.set_major_locator(ticker.MultipleLocator(TICK_SPACING))
     ax.yaxis.set_major_locator(ticker.MultipleLocator(TICK_SPACING))
 
     # plt.show()
     if save:
-        title = "mnist_{}.png".format(name)
+        title = "mnist_{}.png".format(name.replace(">", "_"))
         plt.savefig(os.path.join(outdir, title), bbox_inches="tight")
 
 
 def morph(model, zs, n_per_morph=10, loop=True, save=True, name="morph", outdir="."):
     """Plot frames of morph between zs (np.array of 2+ latent points)"""
     assert len(zs) > 1, "Must specify at least two latent pts for morph!"
-    dim = int(model.architecture[0]**0.5) # assume square images
+    dim = int(model.architecture[0]**0.5 - model.architecture[4]) # assume square images
 
     def pairwise(iterable):
         """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
@@ -185,8 +186,8 @@ def morph(model, zs, n_per_morph=10, loop=True, save=True, name="morph", outdir=
         all_xs.extend(xs_reconstructed)
 
     for i, x in enumerate(all_xs):
-        plt.figure(figsize = (5, 5))
-        plt.imshow(x.reshape([dim, dim]), cmap="Greys")
+        plt.figure(figsize=(5, 5))
+        plt.imshow(x[0:dim*dim].reshape([dim, dim]), cmap="Greys")
 
         # axes off
         ax = plt.gca()
@@ -199,5 +200,5 @@ def morph(model, zs, n_per_morph=10, loop=True, save=True, name="morph", outdir=
         if save:
             title = "{}_latent_{}_round_{}_{}.{}.png".format(
                 model.datetime, "_".join(map(str, model.architecture)),
-                model.step, name, i)
+                model.step, name.replace(">", "_"), i)
             plt.savefig(os.path.join(outdir, title), bbox_inches="tight")
